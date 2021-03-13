@@ -55,16 +55,16 @@ public class DatabaseManager {
 	
 	public JTable viewTable(String tableName) throws SQLException {
 		
-		// Establish db connection
+		JTable result;
+		
+		// Establish database connection
 		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
 
 		// Execute query
 		Statement stmt = con.createStatement();
 	    ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
-	    
-	    JTable result;
-	
-	    // Establish number of rows in the table
+
+	    // Determine the number of rows in the table
 	    int rows = 0;
 	    while (rs.next())
 	    	rows++;
@@ -72,28 +72,47 @@ public class DatabaseManager {
 	    // You have to execute the query twice because SQLite doesn't support scrollable cursors :(
 	    rs = stmt.executeQuery("SELECT * FROM " + tableName);
 	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
-	    String[] colNames = new String[rs.getMetaData().getColumnCount()];
-	    for (int x = 1; x < colNames.length + 1; x++)
-	    	colNames[x - 1] = rs.getMetaData().getColumnName(x);
+	    int columns = rs.getMetaData().getColumnCount();
 	    
-		// Add the contents of the ResultSet to the table 
-		int columns = rs.getMetaData().getColumnCount();
+	    String[] colNames = new String[columns];
+		Class[] colTypes = new Class[columns];
+		
+		// Determine the names and types of each column
+	    for (int x = 1; x < columns + 1; x++) {
+	    	colNames[x - 1] = rs.getMetaData().getColumnName(x);
+	    	try {
+	    		colTypes[x - 1] = rs.getObject(x).getClass();
+	    	}
+	    	catch (NullPointerException e) { // Unsure why this exception was happening, but setting the type to default to Object seems to solve any issue with the problematic table
+	    		colTypes[x -1] = Object.class;
+	    	}
+	    }
+	    			
+		// Fill the JTable 
 		while (rs.next()) {
 			for (int x = 0; x < columns; x++) {
 				tableContent[rs.getRow() - 1][x] = rs.getObject(x + 1);
 			}
+			
 		}
-		
-		// Fill and return the JTable
-		// Use a TableModel that prevents cell editing
+			
+		// Create a TableModel containing the results that prevents cell editing, and uses the previously determined class types to sort columns correctly
 		@SuppressWarnings("serial")
-		TableModel model = new DefaultTableModel(tableContent, colNames) {
+		TableModel model = new DefaultTableModel(tableContent, colNames) {			
+			@Override
+			public Class getColumnClass(int columnIndex) {
+				return colTypes[columnIndex];
+			}
+			
 			@Override
 			public boolean isCellEditable(int row, int column) {
 				return false;
 			}
 		};
-	    result = new JTable(model);	    
+		
+		// Fill and return the JTable
+	    result = new JTable(model);
+	    result.setAutoCreateRowSorter(true);
 	    return result;
 	    
 	}
