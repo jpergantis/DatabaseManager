@@ -74,17 +74,16 @@ public class DatabaseManager {
 	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
 	    int columns = rs.getMetaData().getColumnCount();
 	    
-	    String[] colNames = new String[columns];
+	    String[] colNames = getColNames(tableName);
 		Class[] colTypes = new Class[columns];
 		
-		// Determine the names and types of each column
+		// Determine the types of each column
 	    for (int x = 1; x < columns + 1; x++) {
-	    	colNames[x - 1] = rs.getMetaData().getColumnName(x);
 	    	try {
 	    		colTypes[x - 1] = rs.getObject(x).getClass();
 	    	}
 	    	catch (NullPointerException e) { // Unsure why this exception was happening, but setting the type to default to Object seems to solve any issue with the problematic table
-	    		colTypes[x -1] = Object.class;
+	    		colTypes[x - 1] = Object.class;
 	    	}
 	    }
 	    			
@@ -115,6 +114,115 @@ public class DatabaseManager {
 	    result.setAutoCreateRowSorter(true);
 	    return result;
 	    
+	}
+	
+	public JTable viewTable(String tableName, String colParam, String textParam) throws SQLException {
+		JTable result;
+		
+		// Establish database connection
+		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+
+		// Execute query
+		Statement stmt = con.createStatement();
+	    ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " WHERE " + colParam + " = " + textParam + " COLLATE NOCASE");
+	    
+	    // If the ResultSet is closed ie there is nothing in it (since we just made the query), return a 1x1 table containing this information
+	    if (rs.isClosed()) {
+	    	Object[][] emptyContent = new Object[1][1];
+	    	emptyContent[0][0] = new String("No results found.");
+	    	String[] emptyColNames = {};
+	    	
+	    	@SuppressWarnings("serial")
+			TableModel model = new DefaultTableModel(emptyContent, emptyColNames) {			
+				@Override
+				public boolean isCellEditable(int row, int column) {
+					return false;
+				}
+			};
+			
+			result = new JTable(model);
+			return result;
+	    	
+	    }
+	    
+	    // Determine the number of rows in the table
+	    int rows = 0;
+	    while (rs.next())
+	    	rows++;
+	    
+	    // You have to execute the query twice because SQLite doesn't support scrollable cursors :(
+	    rs = stmt.executeQuery("SELECT * FROM " + tableName + " WHERE " + colParam + " = " + textParam + " COLLATE NOCASE");
+	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
+	    int columns = rs.getMetaData().getColumnCount();
+	    
+	    String[] colNames = getColNames(tableName);
+		Class[] colTypes = new Class[columns];
+		
+		// Determine the types of each column
+	    for (int x = 1; x < columns + 1; x++) {
+	    	try {
+	    		colTypes[x - 1] = rs.getObject(x).getClass();
+	    	}
+	    	catch (NullPointerException e) { // Unsure why this exception was happening, but setting the type to default to Object seems to solve any issue with the problematic table
+	    		colTypes[x -1] = Object.class;
+	    	}
+	    }
+
+		// Fill the JTable 
+	 	while (rs.next()) {
+	 		for (int x = 0; x < columns; x++) {
+	 			tableContent[rs.getRow() - 1][x] = rs.getObject(x + 1);
+	 		}				
+ 		}
+			
+		// Create a TableModel containing the results that prevents cell editing, and uses the previously determined class types to sort columns correctly
+		@SuppressWarnings("serial")
+		TableModel model = new DefaultTableModel(tableContent, colNames) {			
+			@Override
+			public Class getColumnClass(int columnIndex) {
+				return colTypes[columnIndex];
+			}
+			
+			@Override
+			public boolean isCellEditable(int row, int column) {
+				return false;
+			}
+		};
+		
+		// Fill and return the JTable
+	    result = new JTable(model);
+	    result.setAutoCreateRowSorter(true);
+	    return result;
+	}
+	
+	public String[] getColNames(String tableName) throws SQLException {
+		String[] result;
+		
+		// Establish database connection
+		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+
+		// Execute query		
+		Statement stmt = con.createStatement();		
+		ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + tableName +");\r\n"); // Each row will contain, among other things, the name of a column in the table
+		
+		// Determine the number of rows in the ResultSet
+	    int rows = 0;
+	    while (rs.next())
+	    	rows++;
+		
+	    result = new String[rows];
+	    
+	    // Execute the query again because SQLite doesn't support scrollable cursors
+	    rs = stmt.executeQuery("PRAGMA table_info(" + tableName +");\r\n");
+	    rs.next();
+	    
+		for (int x = 0; x < rows; x++) {
+			result[x] = rs.getString(2);
+			rs.next();
+		}
+		
+		
+		return result;
 	}
 	
 	public void setDbFile(File f) {

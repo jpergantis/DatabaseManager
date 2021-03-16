@@ -11,7 +11,6 @@ import javax.swing.JPanel;
 import databaseManager.managers.DatabaseManager;
 
 import java.awt.BorderLayout;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.SQLException;
@@ -35,14 +34,6 @@ public class TableMenuPanel extends JPanel {
 
 		ArrayList<String> tableNames = dbm.getTables();
 		
-		int rows = (int) Math.ceil(tableNames.size() / 1.69); // Golden ratio 
-		int cols = (int) tableNames.size() / rows;
-		
-		GridLayout layout = new GridLayout(rows, cols);
-		layout.setVgap(50);
-		layout.setHgap(50);
-		// setLayout(layout);
-		
 		// Generate the labels for each button
 		ArrayList<JButton> buttonList = new ArrayList<JButton>();
 		for (String s : tableNames) {
@@ -54,7 +45,7 @@ public class TableMenuPanel extends JPanel {
 			j.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					try {
-						new PopupTableFrame(dbm.viewTable(j.getText()));
+						new PopupTableFrame(dbm, j.getText());
 					} 
 					catch (SQLException e1) {
 						// TODO Auto-generated catch block

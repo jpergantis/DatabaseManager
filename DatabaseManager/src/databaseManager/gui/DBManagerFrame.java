@@ -27,10 +27,13 @@ public class DBManagerFrame extends JFrame {
 	private JPanel contentPane;
 	private DatabaseManager dbm = new DatabaseManager();
 	private TableMenuPanel tmp;
-	private JLabel titleLabel;
 	private JMenuBar menuBar;
 	private JMenu mnNewMenu;
 	private JMenuItem openDBMenuItem;
+	private JPanel bodyPanel;
+	private JLabel titleLabel;
+	private JPanel headerPanel;
+	private JPanel footerPanel;
 
 	/**
 	 * Launch the application.
@@ -63,10 +66,23 @@ public class DBManagerFrame extends JFrame {
 		contentPane.setFont(new Font("Arial", Font.PLAIN, 12));
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
-		contentPane.setLayout(new BorderLayout(0, 0));
+		contentPane.setLayout(null);
+		
+		bodyPanel = new JPanel();
+		bodyPanel.setBounds(5, 29, 774, 423);
+		contentPane.add(bodyPanel);
+		bodyPanel.setLayout(new BorderLayout(0, 0));
+		
+		headerPanel = new JPanel();
+		headerPanel.setBounds(5, 5, 774, 24);
+		contentPane.add(headerPanel);
 		
 		titleLabel = new JLabel("Welcome to DBManager. Select File > Open Existing Database to begin.");
-		contentPane.add(titleLabel, BorderLayout.NORTH);
+		headerPanel.add(titleLabel);
+		
+		footerPanel = new JPanel();
+		footerPanel.setBounds(5, 452, 774, 82);
+		contentPane.add(footerPanel);
 		
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -90,7 +106,7 @@ public class DBManagerFrame extends JFrame {
 					}
 						
 					tmp = new TableMenuPanel(dbm);
-					contentPane.add(tmp, BorderLayout.CENTER);
+					bodyPanel.add(tmp, BorderLayout.CENTER);
 					titleLabel.setText(dbm.getFileName() + " selected. Select a table to view"); 
 					
 					// For some reason simply changing the panel and calling repaint does not correctly update the table
