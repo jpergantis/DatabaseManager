@@ -77,8 +77,8 @@ public class PopupTableFrame extends JFrame {
 				// TODO Auto-generated method stub;
 				contentPane.remove(scrollPane);
 				try {
-					scrollPane = new JScrollPane(dbm.viewTable(tableName, searchColSelector.getItem(searchColSelector.getSelectedIndex()), parseSearchTerm()));
-					lastValidSearchTerm = parseSearchTerm();
+					scrollPane = new JScrollPane(dbm.viewTable(tableName, searchColSelector.getItem(searchColSelector.getSelectedIndex()), searchTerm.getText()));
+					lastValidSearchTerm = searchTerm.getText();
 					scrollPane.setBounds(5, 5, 774, 449);
 					table.setFillsViewportHeight(true);
 					contentPane.add(scrollPane);
@@ -112,15 +112,4 @@ public class PopupTableFrame extends JFrame {
 		setVisible(true);	
 	}
 	
-	private String parseSearchTerm() {
-		String result = null;
-		try {
-			Integer number = Integer.parseInt(searchTerm.getText());
-			result = number.toString();
-		}
-		catch (NumberFormatException e) {
-			result = "\"" + searchTerm.getText() + "\"";
-		}
-		return result;
-	}
 }
