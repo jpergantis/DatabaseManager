@@ -122,15 +122,51 @@ public class DatabaseManager {
 		// Establish database connection
 		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
 
+		
+		/**
+		 * TODO 
+		 * This is not really a great way to prepare the query, it should parse based on the type of column of colParam
+		 * In fact it would probably be most appropriate to create a separate method or even a class for preparing queries, especially to do so more safely
+		 */
+		// Prepare the query
+		boolean parsed = false;
+		String parsedTextParam = null;
+		if (!parsed) {
+			try {
+				parsedTextParam = ((Integer) Integer.parseInt(textParam)).toString();
+				parsed = true;
+			}
+			catch (NumberFormatException e) {
+				// Occurs if the given input is not an integer.
+				// Don't need to do anything, just try the next format.
+			}
+		}
+		if (!parsed) {
+			try {
+				parsedTextParam = ((Double) Double.parseDouble(textParam)).toString();
+				parsed = true;
+			}
+			catch (NumberFormatException e) {
+				// Occurs if the given input is not a double/float type number.
+				// Don't need to do anything, just use it as a string.
+			}
+		}
+		if (!parsed) 
+			parsedTextParam =  "'%" + textParam + "%'";
+		
+		
+		String query = "SELECT * FROM " + tableName + " WHERE " + colParam + " LIKE " + parsedTextParam;
+		System.out.println(query);
+		
 		// Execute query
 		Statement stmt = con.createStatement();
-	    ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " WHERE " + colParam + " = " + textParam + " COLLATE NOCASE");
+	    ResultSet rs = stmt.executeQuery(query);
 	    
 	    // If the ResultSet is closed ie there is nothing in it (since we just made the query), return a 1x1 table containing this information
 	    if (rs.isClosed()) {
 	    	Object[][] emptyContent = new Object[1][1];
 	    	emptyContent[0][0] = new String("No results found.");
-	    	String[] emptyColNames = {};
+	    	String[] emptyColNames = {""};
 	    	
 	    	@SuppressWarnings("serial")
 			TableModel model = new DefaultTableModel(emptyContent, emptyColNames) {			
@@ -142,7 +178,7 @@ public class DatabaseManager {
 			
 			result = new JTable(model);
 			return result;
-	    	
+			
 	    }
 	    
 	    // Determine the number of rows in the table
@@ -151,7 +187,7 @@ public class DatabaseManager {
 	    	rows++;
 	    
 	    // You have to execute the query twice because SQLite doesn't support scrollable cursors :(
-	    rs = stmt.executeQuery("SELECT * FROM " + tableName + " WHERE " + colParam + " = " + textParam + " COLLATE NOCASE");
+	    rs = stmt.executeQuery(query);
 	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
 	    int columns = rs.getMetaData().getColumnCount();
 	    
