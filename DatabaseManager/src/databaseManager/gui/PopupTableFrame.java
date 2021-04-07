@@ -16,6 +16,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
+import java.awt.BorderLayout;
+import javax.swing.BoxLayout;
 
 @SuppressWarnings("serial")
 public class PopupTableFrame extends JFrame {
@@ -30,7 +32,6 @@ public class PopupTableFrame extends JFrame {
 	JButton resetButton;
 	Choice searchColSelector;
 	
-	String lastValidSearchTerm = "*";
 
 	/**
 	 * Create the frame.
@@ -44,32 +45,28 @@ public class PopupTableFrame extends JFrame {
 		setContentPane(contentPane);
 
 		scrollPane = new JScrollPane(table);
-		scrollPane.setBounds(5, 5, 774, 449);
 		table.setFillsViewportHeight(true);
-		contentPane.setLayout(null);
+		contentPane.setLayout(new BorderLayout(0, 0));
 		
 		contentPane.add(scrollPane);
 		
 		menuPanel = new JPanel();
-		menuPanel.setBounds(5, 454, 774, 102);
-		contentPane.add(menuPanel);
-		menuPanel.setLayout(null);
+		menuPanel.setSize(600, 200);
+		contentPane.add(menuPanel, BorderLayout.SOUTH);
 		
 		searchColSelector = new Choice();
-		searchColSelector.setBounds(156, 35, 128, 20);
 		String[] colNames = dbm.getColNames(tableName);
 		for (String s : colNames) {
 			searchColSelector.add(s);
 		}
+		menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.X_AXIS));
 		
 		menuPanel.add(searchColSelector);
 		
 		searchTerm = new TextField();
-		searchTerm.setBounds(303, 35, 145, 20);
 		menuPanel.add(searchTerm);
 		
 		searchButton = new JButton("Search");
-		searchButton.setBounds(478, 35, 100, 20);
 		searchButton.addActionListener(new ActionListener() {
 
 			@Override
@@ -77,9 +74,10 @@ public class PopupTableFrame extends JFrame {
 				// TODO Auto-generated method stub;
 				contentPane.remove(scrollPane);
 				try {
+					int oldWidth = scrollPane.getWidth(); // Save the original dimensions of the old scrollPane to use for the new one
+					int oldHeight = scrollPane.getHeight();
 					scrollPane = new JScrollPane(dbm.viewTable(tableName, searchColSelector.getItem(searchColSelector.getSelectedIndex()), searchTerm.getText()));
-					lastValidSearchTerm = searchTerm.getText();
-					scrollPane.setBounds(5, 5, 774, 449);
+					scrollPane.setBounds(5, 5, oldWidth, oldHeight);
 					table.setFillsViewportHeight(true);
 					contentPane.add(scrollPane);
 					repaint();
@@ -105,7 +103,6 @@ public class PopupTableFrame extends JFrame {
 				searchTerm.setText("");
 			}
 		});
-		resetButton.setBounds(593, 35, 100, 20);
 		menuPanel.add(resetButton);
 		
 		setSize(800, 600);
