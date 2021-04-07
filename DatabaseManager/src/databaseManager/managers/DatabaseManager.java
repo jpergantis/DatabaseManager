@@ -3,6 +3,7 @@ package databaseManager.managers;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -61,7 +62,7 @@ public class DatabaseManager {
 		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
 
 		// Execute query
-		Statement stmt = con.createStatement();
+		Statement stmt = con.createStatement(); // A PreparedStatement is not necessary here because the user is only selecting from a list of valid choices
 	    ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
 
 	    // Determine the number of rows in the table
@@ -111,6 +112,8 @@ public class DatabaseManager {
 		
 		// Fill and return the JTable
 	    result = new JTable(model);
+	    result.setCellSelectionEnabled(true);
+	    result.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 	    result.setAutoCreateRowSorter(true);
 	    return result;
 	    
@@ -152,15 +155,15 @@ public class DatabaseManager {
 			}
 		}
 		if (!parsed) 
-			parsedTextParam =  "'%" + textParam + "%'";
+			parsedTextParam =  "%" + textParam + "%";
 		
-		
-		String query = "SELECT * FROM " + tableName + " WHERE " + colParam + " LIKE " + parsedTextParam;
-		System.out.println(query);
-		
+		// Generate a PreparedStatement using text the user enters into the search field
+		String query = "SELECT * FROM " + tableName + " WHERE " + colParam + " LIKE ?";
+		PreparedStatement stmt = con.prepareStatement(query);
+		stmt.setString(1, parsedTextParam);
+
 		// Execute query
-		Statement stmt = con.createStatement();
-	    ResultSet rs = stmt.executeQuery(query);
+	    ResultSet rs = stmt.executeQuery();
 	    
 	    // If the ResultSet is closed ie there is nothing in it (since we just made the query), return a 1x1 table containing this information
 	    if (rs.isClosed()) {
@@ -187,7 +190,7 @@ public class DatabaseManager {
 	    	rows++;
 	    
 	    // You have to execute the query twice because SQLite doesn't support scrollable cursors :(
-	    rs = stmt.executeQuery(query);
+	    rs = stmt.executeQuery();
 	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
 	    int columns = rs.getMetaData().getColumnCount();
 	    
@@ -227,6 +230,8 @@ public class DatabaseManager {
 		
 		// Fill and return the JTable
 	    result = new JTable(model);
+	    result.setCellSelectionEnabled(true);
+	    result.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 	    result.setAutoCreateRowSorter(true);
 	    return result;
 	}
