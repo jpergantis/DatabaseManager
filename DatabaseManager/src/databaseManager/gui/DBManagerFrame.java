@@ -21,6 +21,8 @@ import databaseManager.managers.DatabaseManager;
 import java.awt.BorderLayout;
 import javax.swing.JLabel;
 
+import com.formdev.flatlaf.FlatLightLaf;
+
 @SuppressWarnings("serial")
 public class DBManagerFrame extends JFrame {
 
@@ -39,7 +41,8 @@ public class DBManagerFrame extends JFrame {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-	
+		
+		FlatLightLaf.install();
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
