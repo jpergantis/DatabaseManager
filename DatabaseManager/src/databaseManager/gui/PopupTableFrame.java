@@ -94,14 +94,22 @@ public class PopupTableFrame extends JFrame {
 		resetButton = new JButton("Reset");
 		resetButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub;
 				contentPane.remove(scrollPane);
-				scrollPane = new JScrollPane(table);
-				scrollPane.setBounds(5, 5, 774, 449);
-				table.setFillsViewportHeight(true);
-				contentPane.setLayout(null);			
-				contentPane.add(scrollPane);
-				searchTerm.setText("");
+				try {
+					int oldWidth = scrollPane.getWidth(); // Save the original dimensions of the old scrollPane to use for the new one
+					int oldHeight = scrollPane.getHeight();
+					scrollPane = new JScrollPane(dbm.viewTable(tableName));
+					scrollPane.setBounds(5, 5, oldWidth, oldHeight);
+					table.setFillsViewportHeight(true);
+					contentPane.add(scrollPane);
+					repaint();
+				} 
+				catch (SQLException e1) {
+					e1.printStackTrace();
+				}
 			}
+			
 		});
 		menuPanel.add(resetButton);
 		
