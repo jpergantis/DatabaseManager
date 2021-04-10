@@ -117,10 +117,11 @@ public class PopupTableFrame extends JFrame {
 		resetButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 		resetButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub;
 				contentPane.remove(scrollPane);
-				backStack.push(scrollPane);
-				backButton.setEnabled(true);
+				fwdStack.clear();
+				backStack.clear();
+				fwdButton.setEnabled(false);
+				backButton.setEnabled(false);
 				try {
 					scrollPane = new JScrollPane(dbm.viewTable(tableName));
 				} 
@@ -204,7 +205,7 @@ public class PopupTableFrame extends JFrame {
 	private void performSearch() {
 		contentPane.remove(scrollPane);
 		if (backStack.isEmpty()) {
-			fwdStack = new Stack<JScrollPane>(); // Resets the forward/backward upon returning to the original table and performing a new search (when both stacks are empty, you must be at the beginning)
+			fwdStack.clear(); // Resets the forward/backward upon returning to the original table and performing a new search (when both stacks are empty, you must be at the beginning)
 			fwdButton.setEnabled(false);
 		}
 		backStack.push(scrollPane);
