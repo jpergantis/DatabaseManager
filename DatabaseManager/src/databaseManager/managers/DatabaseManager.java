@@ -240,7 +240,7 @@ public class DatabaseManager {
 	public String[] getColNames(String tableName) throws SQLException {
 		
 		String[] result;
-		ArrayList<String> rowNames = new ArrayList<String>(); // We use an ArrayList to temporarily store the column names because it supports dynamic sizing and prevents us from having to query and iterate twice
+		ArrayList<String> colNames = new ArrayList<String>(); // We use an ArrayList to temporarily store the column names because it supports dynamic sizing and prevents us from having to query and iterate twice
 		
 		// Establish database connection
 		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
@@ -251,14 +251,33 @@ public class DatabaseManager {
 		
 		// Add the names of each column to the ArrayList
 	    while (rs.next())
-	    	rowNames.add(rs.getString(2));
+	    	colNames.add(rs.getString(2));
 
-	    result = new String[rowNames.size()];
-		result = rowNames.toArray(result);
+	    result = new String[colNames.size()];
+		result = colNames.toArray(result);
 		return result;
 	}
 	
-	public void addRowToTable(String table, String[] values) {
+	/**
+	 * Adds a row to the given table 
+	 * @param table The table into which to insert the new row
+	 * @param values An array of Strings ordered by column (left to right)
+	 */
+	public void addRowToTable(String table, String[] values) throws SQLException {
+		System.out.println(table);
+		for (String s : values) {
+			System.out.println(s);
+		}
+		
+		// TODO validate and pass the given values into the database
+		
+		// Prepare the SQL statement
+		// String sql = "INSERT INTO " + table + " ";
+		
+		
+		// Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+		// PreparedStatement stmt = con.prepareStatement(sql);
+		// stmt.executeUpdate(sql);
 		
 	}
 	
