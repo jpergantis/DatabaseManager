@@ -61,16 +61,14 @@ public class DatabaseManager {
 		// Establish database connection
 		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
 
-		// Execute query
-		Statement stmt = con.createStatement(); // A PreparedStatement is not necessary here because the user is only selecting from a list of valid choices
-	    ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+		// Execute query to determine number of rows in the table
+		Statement stmt = con.createStatement();
+	    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName);
 
 	    // Determine the number of rows in the table
-	    int rows = 0;
-	    while (rs.next())
-	    	rows++;
+	    int rows = (int) rs.getObject(1);
 	    
-	    // You have to execute the query twice because SQLite doesn't support scrollable cursors :(
+	    // Execute another query to get the actual contents of the table
 	    rs = stmt.executeQuery("SELECT * FROM " + tableName);
 	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
 	    int columns = rs.getMetaData().getColumnCount();
@@ -159,17 +157,20 @@ public class DatabaseManager {
 			parsedTextParam =  "%" + textParam + "%";
 		
 		// Generate a PreparedStatement using text the user enters into the search field
-		String query = "SELECT * FROM " + tableName + " WHERE " + colParam + " LIKE ?";
+		String query = "SELECT COUNT(*) FROM " + tableName + " WHERE " + colParam + " LIKE ?";
 		PreparedStatement stmt = con.prepareStatement(query);
 		stmt.setString(1, parsedTextParam);
 
 		// Execute query
 	    ResultSet rs = stmt.executeQuery();
 	    
-	    // If the ResultSet is closed ie there is nothing in it (since we just made the query), return a 1x1 table containing this information
-	    if (rs.isClosed()) {
+	    // Determine the number of rows in the table
+	    int rows = (int) rs.getObject(1);
+	    
+	    // If the number of rows is 0 (meaning this query returned 0 results) return a 1x1 table stating that no results were found.
+	    if (rows == 0) {
 	    	Object[][] emptyContent = new Object[1][1];
-	    	emptyContent[0][0] = new String("No results found.");
+	    	emptyContent[0][0] = "No results found.";
 	    	String[] emptyColNames = {""};
 	    	
 	    	@SuppressWarnings("serial")
@@ -181,16 +182,14 @@ public class DatabaseManager {
 			};
 			
 			result = new JTable(model);
-			return result;
-			
+			return result;			
 	    }
 	    
-	    // Determine the number of rows in the table
-	    int rows = 0;
-	    while (rs.next())
-	    	rows++;
 	    
 	    // You have to execute the query twice because SQLite doesn't support scrollable cursors :(
+	    query = "SELECT * FROM " + tableName + " WHERE " + colParam + " LIKE ?";
+	    stmt = con.prepareStatement(query);
+		stmt.setString(1, parsedTextParam);
 	    rs = stmt.executeQuery();
 	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
 	    int columns = rs.getMetaData().getColumnCount();
