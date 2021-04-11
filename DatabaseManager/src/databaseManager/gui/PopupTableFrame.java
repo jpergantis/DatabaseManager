@@ -189,7 +189,15 @@ public class PopupTableFrame extends JFrame {
 		
 		JButton addRowButton = new JButton("Add Row");
 		addRowButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		addRowButton.setEnabled(false);
+		addRowButton.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				new InsertRowDialog(dbm, tableName);				
+			}
+			
+		});
+		addRowButton.setEnabled(true);
 		buttonPanel.add(addRowButton);
 		
 		JButton addColButton = new JButton("Add Column");
