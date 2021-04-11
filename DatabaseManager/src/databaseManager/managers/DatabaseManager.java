@@ -113,6 +113,7 @@ public class DatabaseManager {
 		// Fill and return the JTable
 	    result = new JTable(model);
 	    result.setCellSelectionEnabled(true);
+	    result.setShowGrid(true);
 	    result.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 	    result.setAutoCreateRowSorter(true);
 	    return result;
@@ -203,7 +204,7 @@ public class DatabaseManager {
 	    		colTypes[x - 1] = rs.getObject(x).getClass();
 	    	}
 	    	catch (NullPointerException e) { // Unsure why this exception was happening, but setting the type to default to Object seems to solve any issue with the problematic table
-	    		colTypes[x -1] = Object.class;
+	    		colTypes[x - 1] = Object.class;
 	    	}
 	    }
 
@@ -230,6 +231,7 @@ public class DatabaseManager {
 		
 		// Fill and return the JTable
 	    result = new JTable(model);
+	    result.setShowGrid(true);
 	    result.setCellSelectionEnabled(true);
 	    result.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 	    result.setAutoCreateRowSorter(true);
@@ -237,7 +239,9 @@ public class DatabaseManager {
 	}
 	
 	public String[] getColNames(String tableName) throws SQLException {
+		
 		String[] result;
+		ArrayList<String> rowNames = new ArrayList<String>(); // We use an ArrayList to temporarily store the column names because it supports dynamic sizing and prevents us from having to query and iterate twice
 		
 		// Establish database connection
 		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
@@ -246,24 +250,17 @@ public class DatabaseManager {
 		Statement stmt = con.createStatement();		
 		ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + tableName +");\r\n"); // Each row will contain, among other things, the name of a column in the table
 		
-		// Determine the number of rows in the ResultSet
-	    int rows = 0;
+		// Add the names of each column to the ArrayList
 	    while (rs.next())
-	    	rows++;
-		
-	    result = new String[rows];
-	    
-	    // Execute the query again because SQLite doesn't support scrollable cursors
-	    rs = stmt.executeQuery("PRAGMA table_info(" + tableName +");\r\n");
-	    rs.next();
-	    
-		for (int x = 0; x < rows; x++) {
-			result[x] = rs.getString(2);
-			rs.next();
-		}
-		
-		
+	    	rowNames.add(rs.getString(2));
+
+	    result = new String[rowNames.size()];
+		result = rowNames.toArray(result);
 		return result;
+	}
+	
+	public void addRowToTable(String table, String[] values) {
+		
 	}
 	
 	public void setDbFile(File f) {
