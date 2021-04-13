@@ -109,13 +109,13 @@ public class InsertRowDialog extends JFrame {
 				String missingFields = "The following fields are required: \n";
 				String invalidFields = "The following fields have invalid data types: \n";
 
-				
+				// If any entry is missing (if required) or incorrect format, note it and reject the submission
 				for (int x = 0; x < textFieldContents.length; x++) {
 					if (textFieldContents[x].isEmpty() && requiredFields.get(x)) { // If the field is empty but it is required, don't accept the input
 						missingFields += columnNames[x].substring(0, columnNames[x].length() - 2) + "\n"; // Add the required field to the list of missing ones (with the asterisk trimmed off)
 						emptyRequiredFields = true;
 					}
-					if (!(parseInput(textFieldContents[x]).getClass().equals(dbm.getColumnTypes(table)[x])) && !textFieldContents[x].isEmpty()) {
+					if (!(parseInput(x, textFieldContents[x]).getClass().equals(dbm.getColumnTypes(table)[x])) && !textFieldContents[x].isEmpty()) {
 						
 						invalidFields += columnNames[x].substring(0, columnNames[x].length() - 2) + "\n"; // Add the required field to the list of missing ones (with the asterisk trimmed off)
 						invalidDataTypes = true;
@@ -173,26 +173,27 @@ public class InsertRowDialog extends JFrame {
 		
 	}
 	
-	private Object parseInput(String s) {
-		/**
-		 * TODO 
-		 * This is not really a great way to prepare the query, it should parse based on the type of column of colParam
-		 * In fact it would probably be most appropriate to create a separate method or even a class for preparing queries, especially to do so more safely
-		 */
-		// Prepare the query
+	/**
+	 * Validates the input in a text field is the correct type for the given column
+	 * @param column The column to validate against
+	 * @param s The input string to validate
+	 * @return An Integer, Double, or String containing the user-input data
+	 */
+	private Object parseInput(int column, String s) {
+
 		Object parsedTextParam = null;
-		try {
-			parsedTextParam = Integer.parseInt(s); // Try it as an integer
+		
+		// SQLite effectively only supports 3 data types - Integer, Double, and String
+		// We will return the correct data type based on the column's data type
+		Class[] colTypes = dbm.getColumnTypes(tableName);
+		if (colTypes[column].equals(Integer.class)) {
+			parsedTextParam = Integer.parseInt(s);
+		} else if (colTypes[column].equals(Double.class)) {
+			parsedTextParam = Double.parseDouble(s);
+		} else {
+			parsedTextParam = s;
 		}
-		catch (NumberFormatException e1) {
-			try {
-				parsedTextParam =  Double.parseDouble(s); // If it isn't an integer, try as a double
-			}
-			catch (NumberFormatException e2) {
-				parsedTextParam = s; // Otherwise assume it's a string
-			}
-		}
-			
+		
 		return parsedTextParam;
 	}
 	
