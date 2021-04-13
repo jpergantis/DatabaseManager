@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
@@ -17,6 +18,7 @@ public class DatabaseManager {
 
 	private File dbFile;
 	private boolean hasFile = false;
+	private HashMap<String, Class[]> tableColumnTypes = new HashMap<String, Class[]>();
 	
 	public DatabaseManager() {
 		dbFile = null;
@@ -55,7 +57,7 @@ public class DatabaseManager {
 	
 	
 	public JTable viewTable(String tableName) throws SQLException {
-		
+				
 		JTable result;
 		
 		// Establish database connection
@@ -74,18 +76,26 @@ public class DatabaseManager {
 	    int columns = rs.getMetaData().getColumnCount();
 	    
 	    String[] colNames = getColNames(tableName);
-		Class[] colTypes = new Class[columns];
+		Class[] colTypes;
 		
-		// Determine the types of each column
-	    for (int x = 1; x < columns + 1; x++) {
-	    	try {
-	    		colTypes[x - 1] = rs.getObject(x).getClass();
-	    	}
-	    	catch (NullPointerException e) { // Unsure why this exception was happening, but setting the type to default to Object seems to solve any issue with the problematic table
-	    		colTypes[x - 1] = Object.class;
-	    	}
-	    }
-	    			
+		if (tableColumnTypes.get(tableName) == null) {
+			colTypes = new Class[columns];
+			// Determine the types of each column
+		    for (int x = 1; x < columns + 1; x++) {
+		    	try {
+		    		colTypes[x - 1] = rs.getObject(x).getClass();
+		    	}
+		    	catch (NullPointerException e) { // Unsure why this exception was happening, but setting the type to default to Object seems to solve any issue with the problematic table
+		    		colTypes[x - 1] = Object.class;
+		    	}
+		    }
+		    
+		    tableColumnTypes.put(tableName, colTypes); // Save the column types for later so they do not need to be generated again - it may be good to store this more permanently
+		} else {
+			colTypes = tableColumnTypes.get(tableName);
+		}
+		
+	    
 		// Fill the JTable 
 		while (rs.next()) {
 			for (int x = 0; x < columns; x++) {
@@ -128,33 +138,23 @@ public class DatabaseManager {
 		/**
 		 * TODO 
 		 * This is not really a great way to prepare the query, it should parse based on the type of column of colParam
-		 * In fact it would probably be most appropriate to create a separate method or even a class for preparing queries, especially to do so more safely
 		 */
 		// Prepare the query
-		boolean parsed = false;
 		String parsedTextParam = null;
-		if (!parsed) {
+		try {
+			parsedTextParam = ((Integer) Integer.parseInt(textParam)).toString(); // Try the value as an integer
+		}
+		catch (NumberFormatException e1) {
 			try {
-				parsedTextParam = ((Integer) Integer.parseInt(textParam)).toString();
-				parsed = true;
+				parsedTextParam = ((Double) Double.parseDouble(textParam)).toString(); // If it isn't an integer, try it as a double
 			}
-			catch (NumberFormatException e) {
-				// Occurs if the given input is not an integer.
-				// Don't need to do anything, just try the next format.
+			catch (NumberFormatException e2) {
+				parsedTextParam =  "%" + textParam + "%"; // Otherwise assume it's a string
 			}
 		}
-		if (!parsed) {
-			try {
-				parsedTextParam = ((Double) Double.parseDouble(textParam)).toString();
-				parsed = true;
-			}
-			catch (NumberFormatException e) {
-				// Occurs if the given input is not a double/float type number.
-				// Don't need to do anything, just use it as a string.
-			}
-		}
-		if (!parsed) 
-			parsedTextParam =  "%" + textParam + "%";
+		
+		
+			
 		
 		// Generate a PreparedStatement using text the user enters into the search field
 		String query = "SELECT COUNT(*) FROM " + tableName + " WHERE " + colParam + " LIKE ?";
@@ -191,29 +191,22 @@ public class DatabaseManager {
 	    stmt = con.prepareStatement(query);
 		stmt.setString(1, parsedTextParam);
 	    rs = stmt.executeQuery();
-	    Object[][] tableContent = new Object[rows][rs.getMetaData().getColumnCount()];
+	    
 	    int columns = rs.getMetaData().getColumnCount();
+	    Object[][] tableContent = new Object[rows][columns];
+	    
 	    
 	    String[] colNames = getColNames(tableName);
-		Class[] colTypes = new Class[columns];
+		Class[] colTypes = tableColumnTypes.get(tableName); // There is no need to check for validity here, since if we are searching we have already opened the table at least once in this session
 		
-		// Determine the types of each column
-	    for (int x = 1; x < columns + 1; x++) {
-	    	try {
-	    		colTypes[x - 1] = rs.getObject(x).getClass();
-	    	}
-	    	catch (NullPointerException e) { // Unsure why this exception was happening, but setting the type to default to Object seems to solve any issue with the problematic table
-	    		colTypes[x - 1] = Object.class;
-	    	}
-	    }
-
 		// Fill the JTable 
-	 	while (rs.next()) {
-	 		for (int x = 0; x < columns; x++) {
-	 			tableContent[rs.getRow() - 1][x] = rs.getObject(x + 1);
-	 		}				
- 		}
-			
+		while (rs.next()) {
+			for (int x = 0; x < columns; x++) {
+				tableContent[rs.getRow() - 1][x] = rs.getObject(x + 1);
+			 }				
+		 }
+		
+
 		// Create a TableModel containing the results that prevents cell editing, and uses the previously determined class types to sort columns correctly
 		@SuppressWarnings("serial")
 		TableModel model = new DefaultTableModel(tableContent, colNames) {			
@@ -237,6 +230,57 @@ public class DatabaseManager {
 	    return result;
 	}
 	
+	
+	
+	/**
+	 * Adds a row to the given table 
+	 * @param table The table into which to insert the new row
+	 * @param values An array of Strings ordered by column (left to right)
+	 */
+	public void addRowToTable(String table, String[] values) throws SQLException {
+
+		// Generate a string containing the names of the columns
+		// These do not need to be passed as ?'s in a PreparedStatement because they are not user generated
+		String colNamesString = "";
+		String[] columnNames = getColNames(table);
+		for (int x = 0; x < columnNames.length; x++) {
+			if (!values[x].isEmpty()) {
+				colNamesString += columnNames[x] + ","; // Column names separated by commas
+			}
+		}
+		
+		if (!colNamesString.isEmpty()) {
+			colNamesString = colNamesString.substring(0, colNamesString.length() - 1); // Strip the last comma
+		}
+		
+		String questionMarks = "";
+		for (String s : values) {
+			if (!s.isEmpty())
+				questionMarks += "?,";
+		}
+		
+		if (!questionMarks.isEmpty())
+			questionMarks = questionMarks.substring(0, questionMarks.length() - 1); // Strip the last comma
+				
+		// Generate the SQL statement
+		String sql = "INSERT INTO " + table + " (" + colNamesString + ") VALUES (" + questionMarks + ");";
+		
+		// Establish the database connection and finish preparing the statement
+		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+		
+		PreparedStatement stmt = con.prepareStatement(sql);
+		int valueAt = 1; // Which ? in the SQL string we are currently at
+		for (int x = 0; x < values.length; x++) {
+			if (!values[x].isEmpty()) {
+				stmt.setString(valueAt, values[x]); // Insert the value into the statement only if it is not empty
+				valueAt++;
+			}
+		}
+		
+		stmt.executeUpdate();
+		
+	}
+	
 	public String[] getColNames(String tableName) throws SQLException {
 		
 		String[] result;
@@ -258,28 +302,40 @@ public class DatabaseManager {
 		return result;
 	}
 	
-	/**
-	 * Adds a row to the given table 
-	 * @param table The table into which to insert the new row
-	 * @param values An array of Strings ordered by column (left to right)
-	 */
-	public void addRowToTable(String table, String[] values) throws SQLException {
-		System.out.println(table);
-		for (String s : values) {
-			System.out.println(s);
+	public ArrayList<Boolean> getRequiredColumns(String table) throws SQLException {
+		
+		ArrayList<Boolean> result = new ArrayList<Boolean>();
+		
+		// Establish database connection
+		Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+
+		// Execute query		
+		Statement stmt = con.createStatement();		
+		ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + table +");\r\n"); // Each row will contain, among other things, whether a column is required
+			
+		// Index 4 in the results of this query indicate whether a field is required
+		while (rs.next()) {
+			String s = rs.getString(4);
+			if (s.toString().equals("1")) {
+				result.add(true);
+			}
+			else {
+				result.add(false);
+			}
 		}
 		
-		// TODO validate and pass the given values into the database
-		
-		// Prepare the SQL statement
-		// String sql = "INSERT INTO " + table + " ";
-		
-		
-		// Connection con = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
-		// PreparedStatement stmt = con.prepareStatement(sql);
-		// stmt.executeUpdate(sql);
-		
+		return result;
 	}
+	
+	/**
+	 * @param table The table to be searched
+	 * @return The Class type of each column in the given table, sorted from left to right
+	 * @throws SQLException
+	 */
+	public Class[] getColumnTypes(String table) {
+		return tableColumnTypes.get(table);
+	}
+	
 	
 	public void setDbFile(File f) {
 		dbFile = f;
