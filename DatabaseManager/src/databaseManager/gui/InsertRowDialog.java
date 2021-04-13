@@ -141,7 +141,12 @@ public class InsertRowDialog extends JFrame {
 						dispose();
 					} catch (SQLException e1) {
 						// Print an error message/dialog if there is something wrong with the user's input
-						e1.printStackTrace();
+						System.out.println(e1.getMessage());
+						if (e1.getMessage().contains("[SQLITE_CONSTRAINT_PRIMARYKEY]  A PRIMARY KEY constraint failed")) { // There is probably a better way to do this
+							showDialog("The value input for column " + e1.getMessage().substring(e1.getMessage().indexOf('.') + 1, e1.getMessage().length() - 1) + " must be unique.");
+						}
+						else 
+							e1.printStackTrace();
 					}
 				}			
 			}
@@ -187,9 +192,21 @@ public class InsertRowDialog extends JFrame {
 		// We will return the correct data type based on the column's data type
 		Class[] colTypes = dbm.getColumnTypes(tableName);
 		if (colTypes[column].equals(Integer.class)) {
-			parsedTextParam = Integer.parseInt(s);
+			try {
+				parsedTextParam = Integer.parseInt(s);
+			}
+			catch (NumberFormatException e) {
+				// This should only occur if the given value is an empty string in a number column, in which case we want to return an empty string
+				parsedTextParam = "";
+			}
 		} else if (colTypes[column].equals(Double.class)) {
-			parsedTextParam = Double.parseDouble(s);
+			try {
+				parsedTextParam = Double.parseDouble(s);
+			}
+			catch (NumberFormatException e) {
+				// This should only occur if the given value is an empty string in a number column, in which case we want to return an empty string
+				parsedTextParam = "";
+			}
 		} else {
 			parsedTextParam = s;
 		}
