@@ -13,6 +13,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -65,14 +66,16 @@ public class InsertRowDialog extends JFrame {
 		for (int x = 0; x < textFields.length; x++) {
 			textFields[x] = new JTextField(15);
 		}
-
+		
+		SpringLayout layout = new SpringLayout();
+		// Is there a value in SpringLayout I can change to NOT resize JTextFields/components?
+		
 		// Create and populate the panel
-		JPanel panel = new JPanel(new SpringLayout());
+		JPanel panel = new JPanel(layout);
 		for (int x = 0; x < numRows; x++) {
 		    JLabel l = new JLabel(columnNames[x], JLabel.TRAILING);
 		    panel.add(l);
-		    JTextField textField = textFields[x];
-		    
+		    JTextField textField = textFields[x];		    
 		    l.setLabelFor(textField);
 		    panel.add(textField);
 		}
@@ -173,7 +176,12 @@ public class InsertRowDialog extends JFrame {
 		requiredFieldsLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
 		infoPanel.add(requiredFieldsLabel);
 		
-		
+		int height = (30 * numRows) + 115 + buttonPanel.getHeight() + infoPanel.getHeight();
+		if (height > 800) {
+			height = 600; // Just make them scroll if its too big
+		}
+		setResizable(false);
+		setSize(450, height);
 		setVisible(true);
 		
 	}
